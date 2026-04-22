@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  STAFF
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(OWNER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Product {
+  id           String @id @default(cuid())
+  name         String
+  buyingPrice  Float  @map("buying_price")
+  sellingPrice Float  @map("selling_price")
+  discount     Float  @default(0)
+  stock        Int    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  saleItems SaleItem[]
+
+  @@map("products")
+}
+
+model Sale {
+  id             String   @id @default(cuid())
+  totalAmount    Float    @map("total_amount")
+  totalProfit    Float    @map("total_profit")
+  totalDiscount  Float    @map("total_discount")
+  createdAt      DateTime @default(now())
+  
+  items SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id           String @id @default(cuid())
+  saleId       String @map("sale_id")
+  productId    String @map("product_id")
+  productName  String @map("product_name")
+  quantity     Int
+  buyingPrice  Float  @map("buying_price")
+  sellingPrice Float @map("selling_price")
+  discount     Float
+  finalPrice   Float  @map("final_price")
+  profit       Float
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}

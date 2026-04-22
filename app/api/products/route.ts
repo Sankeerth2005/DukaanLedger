@@ -6,6 +6,8 @@ import {
   searchProducts,
 } from "@/lib/services/productService";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/products - List all products
 export async function GET(request: Request) {
   const session = await auth();

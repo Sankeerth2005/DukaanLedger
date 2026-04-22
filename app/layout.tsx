@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { SessionProvider } from "next-auth/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DukaanLedger - Shop Management System",
-  description: "Manage your shop products, billing, inventory, and sales analytics",
+  title: "DukaanLedger – Smart Shop Management",
+  description:
+    "Manage your shop's products, billing, inventory, and sales analytics with DukaanLedger.",
+  keywords: ["shop management", "ledger", "billing", "inventory", "sales"],
 };
 
 export default function RootLayout({
@@ -27,9 +30,28 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Inline script to prevent flash of wrong theme */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const stored = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (stored === 'dark' || (!stored && prefersDark)) {
+                  document.documentElement.classList.add('dark');
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
-        {children}
+        <SessionProvider>
+          {children}
+        </SessionProvider>
         <Toaster />
       </body>
     </html>

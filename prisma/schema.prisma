@@ -70,3 +70,16 @@ model SaleItem {
 
   @@map("sale_items")
 }
+
+model ShopSettings {
+  id             String   @id @default("singleton")
+  shopName       String   @default("My Shop") @map("shop_name")
+  address        String   @default("") 
+  phone          String   @default("") 
+  gstNumber      String   @default("") @map("gst_number")
+  email          String   @default("") 
+  currencySymbol String   @default("₹") @map("currency_symbol")
+  updatedAt      DateTime @updatedAt
+
+  @@map("shop_settings")
+}

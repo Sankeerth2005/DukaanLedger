@@ -1,9 +1,14 @@
-import { prisma } from "@/lib/prisma";
 import { CreateSaleInput, SaleItemInput } from "@/lib/types";
 import { calculateBill, validateBill, calculateCartItem } from "./billingService";
 import { getProductById } from "./productService";
 
+async function getPrisma() {
+  const { prisma } = await import("@/lib/prisma");
+  return prisma;
+}
+
 export async function createSale(data: CreateSaleInput) {
+  const prisma = await getPrisma();
   const bill = await calculateBill(data.items);
   
   const validationError = validateBill(bill.items);
@@ -57,10 +62,19 @@ export async function createSale(data: CreateSaleInput) {
   });
 }
 
-export async function getSales(limit: number = 50, offset: number = 0) {
+export async function getSales(limit: number = 50, offset: number = 0, fromDate?: Date, toDate?: Date) {
+  const prisma = await getPrisma();
+  const dateFilter = fromDate || toDate ? {
+    createdAt: {
+      ...(fromDate && { gte: fromDate }),
+      ...(toDate && { lte: toDate }),
+    },
+  } : {};
+
   const sales = await prisma.sale.findMany({
     take: limit,
     skip: offset,
+    where: dateFilter,
     orderBy: {
       createdAt: "desc",
     },
@@ -71,7 +85,9 @@ export async function getSales(limit: number = 50, offset: number = 0) {
   return sales;
 }
 
+
 export async function getSaleById(id: string) {
+  const prisma = await getPrisma();
   const sale = await prisma.sale.findUnique({
     where: { id },
     include: {
@@ -82,6 +98,7 @@ export async function getSaleById(id: string) {
 }
 
 export async function getDashboardStats(startDate?: Date, endDate?: Date) {
+  const prisma = await getPrisma();
   const dateFilter = startDate || endDate ? {
     createdAt: {
       ...(startDate && { gte: startDate }),

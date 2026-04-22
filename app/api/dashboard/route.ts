@@ -5,6 +5,8 @@ import {
   getTodaySales,
 } from "@/lib/services/salesService";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/dashboard - Get dashboard statistics
 export async function GET(request: Request) {
   const session = await auth();

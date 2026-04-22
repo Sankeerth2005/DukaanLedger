@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createSale, getSales } from "@/lib/services/salesService";
+import { createSaleSchema } from "@/lib/validations";
 
-// GET /api/sales - List all sales
+export const dynamic = "force-dynamic";
+
+// GET /api/sales - List all sales with optional date filtering
 export async function GET(request: Request) {
   const session = await auth();
   if (!session) {
@@ -13,8 +16,17 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
 
-    const sales = await getSales(limit, offset);
+    const fromDate = from ? new Date(from) : undefined;
+    let toDate = to ? new Date(to) : undefined;
+    if (toDate) {
+      // End of day
+      toDate.setHours(23, 59, 59, 999);
+    }
+
+    const sales = await getSales(limit, offset, fromDate, toDate);
     return NextResponse.json(sales);
   } catch (error) {
     console.error("Error fetching sales:", error);
@@ -34,26 +46,15 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { items } = body;
+    const parsed = createSaleSchema.safeParse(body);
 
-    // Validation
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { error: "At least one item is required" },
-        { status: 400 }
-      );
+    if (!parsed.success) {
+      const firstError = parsed.error.flatten().fieldErrors;
+      const message = Object.values(firstError).flat()[0] || "Invalid input";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    for (const item of items) {
-      if (!item.productId || !item.quantity || item.quantity <= 0) {
-        return NextResponse.json(
-          { error: "Each item must have a valid productId and quantity > 0" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const sale = await createSale({ items });
+    const sale = await createSale(parsed.data);
     return NextResponse.json(sale, { status: 201 });
   } catch (error: any) {
     console.error("Error creating sale:", error);

@@ -1,7 +1,12 @@
-import { prisma } from "@/lib/prisma";
 import { CreateProductInput, UpdateProductInput } from "@/lib/types";
 
+async function getPrisma() {
+  const { prisma } = await import("@/lib/prisma");
+  return prisma;
+}
+
 export async function getProducts(search?: string) {
+  const prisma = await getPrisma();
   const products = await prisma.product.findMany({
     where: search
       ? {
@@ -19,6 +24,7 @@ export async function getProducts(search?: string) {
 }
 
 export async function getProductById(id: string) {
+  const prisma = await getPrisma();
   const product = await prisma.product.findUnique({
     where: { id },
   });
@@ -26,6 +32,7 @@ export async function getProductById(id: string) {
 }
 
 export async function createProduct(data: CreateProductInput) {
+  const prisma = await getPrisma();
   const product = await prisma.product.create({
     data: {
       name: data.name,
@@ -39,6 +46,7 @@ export async function createProduct(data: CreateProductInput) {
 }
 
 export async function updateProduct(id: string, data: UpdateProductInput) {
+  const prisma = await getPrisma();
   const product = await prisma.product.update({
     where: { id },
     data: {
@@ -53,12 +61,14 @@ export async function updateProduct(id: string, data: UpdateProductInput) {
 }
 
 export async function deleteProduct(id: string) {
+  const prisma = await getPrisma();
   await prisma.product.delete({
     where: { id },
   });
 }
 
 export async function searchProducts(query: string) {
+  const prisma = await getPrisma();
   const products = await prisma.product.findMany({
     where: {
       name: {
@@ -75,6 +85,7 @@ export async function searchProducts(query: string) {
 }
 
 export async function getLowStockProducts(threshold: number = 10) {
+  const prisma = await getPrisma();
   const products = await prisma.product.findMany({
     where: {
       stock: {

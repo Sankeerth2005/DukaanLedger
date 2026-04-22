@@ -6,6 +6,8 @@ import {
   deleteProduct,
 } from "@/lib/services/productService";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/products/:id - Get a specific product
 export async function GET(
   request: Request,
@@ -97,7 +99,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/products/:id - Delete a product
+// DELETE /api/products/:id - Delete a product (OWNER only)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -105,6 +107,10 @@ export async function DELETE(
   const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (session.user.role !== "OWNER") {
+    return NextResponse.json({ error: "Only owners can delete products" }, { status: 403 });
   }
 
   try {
@@ -119,3 +125,4 @@ export async function DELETE(
     );
   }
 }
+

@@ -92,3 +92,21 @@ export interface DashboardStats {
     totalRevenue: number;
   }>;
 }
+
+export interface SalesTrend {
+  date: string;
+  sales: number;
+  profit: number;
+  transactions: number;
+}
+
+export interface ShopSettings {
+  id: string;
+  shopName: string;
+  address: string;
+  phone: string;
+  gstNumber: string;
+  email: string;
+  currencySymbol: string;
+  updatedAt: Date;
+}

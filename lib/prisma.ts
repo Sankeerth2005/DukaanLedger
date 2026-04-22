@@ -1,29 +1,20 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-// PrismaClient is attached to the `global` object in development to prevent
-// exhausting your database connection limit.
-// Learn more: https://pris.ly/d/help/next-js-best-practices
+const connectionString = process.env.DATABASE_URL;
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 
-let prismaInstance: PrismaClient | undefined;
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+  });
 
-function getPrismaClient(): PrismaClient {
-  if (!prismaInstance) {
-    prismaInstance = new PrismaClient();
-    if (process.env.NODE_ENV !== "production") {
-      globalThis.prisma = prismaInstance;
-    }
-  }
-  return prismaInstance;
-}
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-// Export a proxy that lazily initializes the client
-export const prisma = new Proxy({} as PrismaClient, {
-  get(target, prop) {
-    const client = getPrismaClient();
-    return (client as any)[prop];
-  },
-});
+

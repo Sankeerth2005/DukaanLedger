@@ -3,7 +3,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "library"
 }
+
 
 datasource db {
   provider = "postgresql"
@@ -27,17 +29,18 @@ model User {
 }
 
 model Product {
-  id           String @id @default(cuid())
+  id           String     @id @default(cuid())
   name         String
-  buyingPrice  Float  @map("buying_price")
-  sellingPrice Float  @map("selling_price")
-  discount     Float  @default(0)
-  stock        Int    @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  buyingPrice  Float      @default(0) @map("buying_price")
+  sellingPrice Float      @default(0) @map("selling_price")
+  discount     Float      @default(0)
+  stock        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   saleItems SaleItem[]
 
+  @@index([name])
   @@map("products")
 }
 

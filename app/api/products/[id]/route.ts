@@ -47,6 +47,10 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (session.user.role !== "OWNER") {
+    return NextResponse.json({ error: "Only owners can update products" }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { name, buyingPrice, sellingPrice, discount, stock } = body;

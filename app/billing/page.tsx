@@ -41,7 +41,9 @@ export default function BillingPage() {
         try {
           const response = await fetch(`/api/products?search=${encodeURIComponent(searchQuery)}`);
           const data = await response.json();
-          setSearchResults(data.slice(0, 6));
+          const results = Array.isArray(data) ? data : [];
+          setSearchResults(results.slice(0, 6));
+
           setShowSuggestions(true);
         } catch (error) {
           console.error("Search failed:", error);

@@ -39,7 +39,7 @@ export default function ProductsPage() {
       const query = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : "";
       const response = await fetch(`/api/products${query}`);
       const data = await response.json();
-      setProducts(data);
+      setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch products:", error);
     } finally {
@@ -186,26 +186,39 @@ export default function ProductsPage() {
                         placeholder="0" className="h-11" />
                     </div>
                   </div>
-                  {/* Margin preview */}
+                  {/* Margin preview & Warning */}
                   {formData.buyingPrice && formData.sellingPrice && (
-                    <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900 p-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Final Selling Price</span>
-                        <span className="font-medium">
-                          {formatCurrency(calculateFinalPrice(parseFloat(formData.sellingPrice) || 0, parseFloat(formData.discount) || 0))}
-                        </span>
-                      </div>
-                      <div className="flex justify-between mt-1">
-                        <span className="text-muted-foreground">Margin per unit</span>
-                        <span className="font-semibold text-green-700 dark:text-green-400">
-                          {formatCurrency(
-                            calculateFinalPrice(parseFloat(formData.sellingPrice) || 0, parseFloat(formData.discount) || 0) -
-                            (parseFloat(formData.buyingPrice) || 0)
-                          )}
-                        </span>
+                    <div className="space-y-2">
+                      {parseFloat(formData.buyingPrice) > parseFloat(formData.sellingPrice) && (
+                        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900 p-3 text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                          <AlertCircle className="h-4 w-4 shrink-0" />
+                          <span>Warning: Buying price is higher than selling price!</span>
+                        </div>
+                      )}
+                      <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900 p-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Final Selling Price</span>
+                          <span className="font-medium">
+                            {formatCurrency(calculateFinalPrice(parseFloat(formData.sellingPrice) || 0, parseFloat(formData.discount) || 0))}
+                          </span>
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-muted-foreground">Margin per unit</span>
+                          <span className={`${
+                            calculateFinalPrice(parseFloat(formData.sellingPrice) || 0, parseFloat(formData.discount) || 0) - (parseFloat(formData.buyingPrice) || 0) < 0
+                              ? "text-red-600 dark:text-red-400 font-bold"
+                              : "text-green-700 dark:text-green-400 font-semibold"
+                          }`}>
+                            {formatCurrency(
+                              calculateFinalPrice(parseFloat(formData.sellingPrice) || 0, parseFloat(formData.discount) || 0) -
+                              (parseFloat(formData.buyingPrice) || 0)
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   )}
+
                   <Button type="submit" className="w-full h-11 font-semibold">
                     {editingProduct ? "Update Product" : "Create Product"}
                   </Button>
@@ -293,16 +306,19 @@ export default function ProductsPage() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(product)}>
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
                             {isOwner && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive"
-                                onClick={() => handleDelete(product.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              <>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(product)}>
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive"
+                                  onClick={() => handleDelete(product.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
                             )}
                           </TableCell>
+
                         </TableRow>
                       );
                     })}

@@ -5,20 +5,18 @@ async function getPrisma() {
   return prisma;
 }
 
-const SINGLETON_ID = "singleton";
-
-export async function getShopSettings(): Promise<ShopSettings> {
+export async function getShopSettings(shopId: string): Promise<ShopSettings> {
   const prisma = await getPrisma();
   
   let settings = await prisma.shopSettings.findUnique({
-    where: { id: SINGLETON_ID },
+    where: { shopId },
   });
 
   if (!settings) {
     // Create default settings if none exist
     settings = await prisma.shopSettings.create({
       data: {
-        id: SINGLETON_ID,
+        shopId,
         shopName: "My Shop",
         address: "",
         phone: "",
@@ -32,7 +30,7 @@ export async function getShopSettings(): Promise<ShopSettings> {
   return settings as ShopSettings;
 }
 
-export async function updateShopSettings(data: {
+export async function updateShopSettings(shopId: string, data: {
   shopName?: string;
   address?: string;
   phone?: string;
@@ -43,9 +41,9 @@ export async function updateShopSettings(data: {
   const prisma = await getPrisma();
   
   const settings = await prisma.shopSettings.upsert({
-    where: { id: SINGLETON_ID },
+    where: { shopId },
     create: {
-      id: SINGLETON_ID,
+      shopId,
       shopName: data.shopName ?? "My Shop",
       address: data.address ?? "",
       phone: data.phone ?? "",
@@ -65,3 +63,4 @@ export async function updateShopSettings(data: {
   
   return settings as ShopSettings;
 }
+

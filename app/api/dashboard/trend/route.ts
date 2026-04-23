@@ -1,53 +1,43 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import type { SalesTrend } from "@/lib/types";
 
-async function getPrisma() {
-  const { prisma } = await import("@/lib/prisma");
-  return prisma;
-}
+export const dynamic = "force-dynamic";
 
-// GET /api/dashboard/trend?days=7 - Get sales trend for last N days
 export async function GET(request: Request) {
   const session = await auth();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  const shopId = (session.user as any).shopId;
+  const { searchParams } = new URL(request.url);
+  const days = parseInt(searchParams.get("days") || "7");
+
   try {
-    const { searchParams } = new URL(request.url);
-    const days = Math.min(parseInt(searchParams.get("days") || "7"), 30);
-    const prisma = await getPrisma();
+    const { prisma } = await import("@/lib/prisma");
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    const trend: SalesTrend[] = [];
+    const trend = await prisma.sale.groupBy({
+      by: ["createdAt"],
+      where: {
+        shopId,
+        createdAt: { gte: startDate },
+      },
+      _sum: { totalAmount: true, totalProfit: true },
+      _count: { id: true },
+    });
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
+    // Formatting for chart
+    const formatted = trend.map(t => ({
+      date: t.createdAt.toISOString().split("T")[0],
+      sales: t._sum.totalAmount || 0,
+      profit: t._sum.totalProfit || 0,
+    })).sort((a, b) => a.date.localeCompare(b.date));
 
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-
-      const agg = await prisma.sale.aggregate({
-        where: {
-          createdAt: { gte: date, lt: nextDate },
-        },
-        _sum: { totalAmount: true, totalProfit: true },
-        _count: { id: true },
-      });
-
-      trend.push({
-        date: date.toLocaleDateString("en-IN", { month: "short", day: "numeric" }),
-        sales: agg._sum.totalAmount ?? 0,
-        profit: agg._sum.totalProfit ?? 0,
-        transactions: agg._count.id ?? 0,
-      });
-    }
-
-    return NextResponse.json(trend);
+    return NextResponse.json({ success: true, data: formatted });
   } catch (error) {
-    console.error("Error fetching trend:", error);
-    return NextResponse.json({ error: "Failed to fetch trend" }, { status: 500 });
+    console.error("Trend analysis error:", error);
+    return NextResponse.json({ success: false, error: "Failed to fetch trend data" }, { status: 500 });
   }
 }

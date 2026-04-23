@@ -11,6 +11,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { ShopSettings } from "@/lib/types";
+import { motion } from "framer-motion";
+import { fadeUp, stagger } from "@/components/motion";
 import {
   Settings,
   Store,
@@ -53,7 +55,9 @@ export default function SettingsPage() {
   async function fetchSettings() {
     try {
       const res = await fetch("/api/settings");
-      const data = await res.json();
+      const result = await res.json();
+      const data = result.success ? result.data : result; // handle both shapes
+      if (!data) return;
       setSettings(data);
       setForm({
         shopName: data.shopName || "",
@@ -98,15 +102,16 @@ export default function SettingsPage() {
     <>
       <Navbar />
       <main className="flex-1 container py-8 animate-fade-in">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <motion.div className="mb-8"
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2" style={{ fontFamily: "Syne, sans-serif" }}>
             <Settings className="h-6 w-6 text-primary" />
-            Shop Settings
+            Shop <span className="gradient-text">Settings</span>
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Manage your business profile and preferences
           </p>
-        </div>
+        </motion.div>
 
         {/* Access Restriction Banner */}
         {!isOwner && (

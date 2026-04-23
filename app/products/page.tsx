@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, calculateFinalPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { Plus, Search, Edit2, Trash2, Package, AlertCircle, TrendingUp } from "lucide-react";
+import { motion } from "framer-motion";
+import { fadeUp } from "@/components/motion";
 
 export default function ProductsPage() {
   const { toast } = useToast();
@@ -28,6 +30,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [noShop, setNoShop] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
@@ -38,8 +41,16 @@ export default function ProductsPage() {
     try {
       const query = searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : "";
       const response = await fetch(`/api/products${query}`);
-      const data = await response.json();
-      setProducts(Array.isArray(data) ? data : []);
+      const result = await response.json();
+      if (response.status === 400 && result.error?.includes("No shop")) {
+        setNoShop(true);
+        return;
+      }
+      if (result.success) {
+        setProducts(Array.isArray(result.data) ? result.data : []);
+      } else {
+        throw new Error(result.error || "Failed to fetch products");
+      }
     } catch (error) {
       console.error("Failed to fetch products:", error);
     } finally {
@@ -68,9 +79,11 @@ export default function ProductsPage() {
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save product");
+        const result = await response.json();
+        throw new Error(result.error || "Failed to save product");
       }
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || "Failed to save product");
       toast({ title: "Success", description: editingProduct ? "Product updated" : "Product created" });
       setIsDialogOpen(false);
       setEditingProduct(null);
@@ -89,8 +102,10 @@ export default function ProductsPage() {
     if (!confirm("Delete this product? This action cannot be undone.")) return;
     try {
       const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete product");
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || "Failed to delete product");
       toast({ title: "Deleted", description: "Product removed successfully" });
+      setProducts((current) => current.filter((p) => p.id !== id));
       fetchProducts();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -118,11 +133,25 @@ export default function ProductsPage() {
     <>
       <Navbar />
       <main className="flex-1 container py-8 animate-fade-in">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        {noShop && (
+          <div className="mb-6 rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-amber-400">⚠️ Session needs refresh</p>
+              <p className="text-sm text-amber-300/80 mt-0.5">Your session is missing shop data. Sign out and sign back in to fix this instantly.</p>
+            </div>
+            <Button size="sm" variant="outline" className="border-amber-400/60 text-amber-400 shrink-0"
+              onClick={() => signOut({ callbackUrl: "/login" })}>
+              Sign out & fix
+            </Button>
+          </div>
+        )}
+        <motion.div
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight flex items-center gap-2" style={{ fontFamily: "Syne, sans-serif" }}>
               <Package className="h-6 w-6 text-primary" />
-              Products
+              <span className="gradient-text">Products</span>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               {products.length} products •{" "}
@@ -226,7 +255,7 @@ export default function ProductsPage() {
               </DialogContent>
             </Dialog>
           )}
-        </div>
+        </motion.div>
 
         <Card>
           <CardHeader className="pb-3">
@@ -273,11 +302,15 @@ export default function ProductsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {products.map((product) => {
+                    {products.map((product, idx) => {
                       const finalPrice = calculateFinalPrice(product.sellingPrice, product.discount);
                       const margin = finalPrice - product.buyingPrice;
                       return (
-                        <TableRow key={product.id} className="hover:bg-secondary/40">
+                        <motion.tr key={product.id}
+                          className="border-b transition-colors hover:bg-secondary/40"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.03, duration: 0.3 }}>
                           <TableCell className="font-medium text-sm">{product.name}</TableCell>
                           {isOwner && <TableCell className="text-sm text-muted-foreground">{formatCurrency(product.buyingPrice)}</TableCell>}
                           <TableCell className="text-sm">{formatCurrency(product.sellingPrice)}</TableCell>
@@ -319,7 +352,7 @@ export default function ProductsPage() {
                             )}
                           </TableCell>
 
-                        </TableRow>
+                        </motion.tr>
                       );
                     })}
                   </TableBody>

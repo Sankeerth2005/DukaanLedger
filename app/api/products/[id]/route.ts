@@ -5,128 +5,95 @@ import {
   updateProduct,
   deleteProduct,
 } from "@/lib/services/productService";
+import { productSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/products/:id - Get a specific product
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const { id } = await params;
-    const product = await getProductById(id);
+    const product = await getProductById((session.user as any).shopId, id);
     if (!product) {
       return NextResponse.json(
-        { error: "Product not found" },
+        { success: false, error: "Product not found" },
         { status: 404 }
       );
     }
-    return NextResponse.json(product);
+    return NextResponse.json({ success: true, data: product });
   } catch (error) {
     console.error("Error fetching product:", error);
     return NextResponse.json(
-      { error: "Failed to fetch product" },
+      { success: false, error: "Failed to fetch product" },
       { status: 500 }
     );
   }
 }
 
-// PUT /api/products/:id - Update a product
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   if (session.user.role !== "OWNER") {
-    return NextResponse.json({ error: "Only owners can update products" }, { status: 403 });
+    return NextResponse.json({ success: false, error: "Only owners can update products" }, { status: 403 });
   }
 
   try {
     const body = await request.json();
-    const { name, buyingPrice, sellingPrice, discount, stock } = body;
+    const result = productSchema.partial().safeParse(body);
 
-    // Validation
-    if (buyingPrice !== undefined && buyingPrice < 0) {
-      return NextResponse.json(
-        { error: "Buying price cannot be negative" },
-        { status: 400 }
-      );
-    }
-
-    if (sellingPrice !== undefined && sellingPrice < 0) {
-      return NextResponse.json(
-        { error: "Selling price cannot be negative" },
-        { status: 400 }
-      );
-    }
-
-    if (discount !== undefined && (discount < 0 || discount > 100)) {
-      return NextResponse.json(
-        { error: "Discount must be between 0 and 100" },
-        { status: 400 }
-      );
-    }
-
-    if (stock !== undefined && stock < 0) {
-      return NextResponse.json(
-        { error: "Stock cannot be negative" },
-        { status: 400 }
-      );
+    if (!result.success) {
+      const errorMsg = result.error.errors.map(e => e.message).join(", ");
+      return NextResponse.json({ success: false, error: errorMsg }, { status: 400 });
     }
 
     const { id } = await params;
-    const product = await updateProduct(id, {
-      name,
-      buyingPrice,
-      sellingPrice,
-      discount,
-      stock,
-    });
+    const product = await updateProduct((session.user as any).shopId, id, result.data);
 
-    return NextResponse.json(product);
+    return NextResponse.json({ success: true, data: product });
   } catch (error) {
     console.error("Error updating product:", error);
     return NextResponse.json(
-      { error: "Failed to update product" },
+      { success: false, error: "Failed to update product" },
       { status: 500 }
     );
   }
 }
 
-// DELETE /api/products/:id - Delete a product (OWNER only)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
   if (session.user.role !== "OWNER") {
-    return NextResponse.json({ error: "Only owners can delete products" }, { status: 403 });
+    return NextResponse.json({ success: false, error: "Only owners can delete products" }, { status: 403 });
   }
 
   try {
     const { id } = await params;
-    await deleteProduct(id);
-    return NextResponse.json({ message: "Product deleted successfully" });
+    await deleteProduct((session.user as any).shopId, id);
+    return NextResponse.json({ success: true, message: "Product deleted successfully" });
   } catch (error) {
     console.error("Error deleting product:", error);
     return NextResponse.json(
-      { error: "Failed to delete product" },
+      { success: false, error: "Failed to delete product" },
       { status: 500 }
     );
   }
 }
-

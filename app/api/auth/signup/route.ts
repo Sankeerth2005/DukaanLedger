@@ -51,14 +51,30 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: "OWNER",
-      },
+    // Transaction to create User, their Shop, and default Settings
+    const user = await prisma.$transaction(async (tx: any) => {
+      // 1. Create User
+      const newUser = await tx.user.create({
+        data: { name, email, password: hashedPassword, role: "OWNER" },
+      });
+
+      // 2. Create their dedicated Shop
+      const shop = await tx.shop.create({
+        data: { name: `${name}'s Shop`, ownerId: newUser.id },
+      });
+
+      // 3. Link User to Shop
+      const updatedUser = await tx.user.update({
+        where: { id: newUser.id },
+        data: { shopId: shop.id },
+      });
+
+      // 4. Create default settings for this Shop
+      await tx.shopSettings.create({
+        data: { shopId: shop.id, shopName: `${name}'s Shop` },
+      });
+
+      return updatedUser;
     });
 
     return NextResponse.json(

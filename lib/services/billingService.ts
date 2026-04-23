@@ -11,11 +11,12 @@ export interface BillingCalculation {
 }
 
 export async function calculateCartItem(
+  shopId: string,
   productId: string,
   quantity: number,
   discount: number = 0
 ): Promise<CartItem | null> {
-  const product = await getProductById(productId);
+  const product = await getProductById(shopId, productId);
   if (!product) return null;
 
   if (product.stock < quantity) {
@@ -40,11 +41,12 @@ export async function calculateCartItem(
   };
 }
 
-export async function calculateBill(items: SaleItemInput[]): Promise<BillingCalculation> {
+export async function calculateBill(shopId: string, items: SaleItemInput[]): Promise<BillingCalculation> {
   const cartItems: CartItem[] = [];
   
   for (const item of items) {
     const cartItem = await calculateCartItem(
+      shopId,
       item.productId,
       item.quantity,
       item.discount ?? 0

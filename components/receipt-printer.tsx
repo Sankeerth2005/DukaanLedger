@@ -1,8 +1,9 @@
 "use client";
 
-import type { Sale } from "@/lib/types";
+import type { Sale, ShopSettings } from "@/lib/types";
 
-export function printReceipt(sale: Sale, shopName = "My Shop") {
+export function printReceipt(sale: Sale, settings: Partial<ShopSettings> = {}) {
+  const shopName = settings.shopName || "My Shop";
   // Use browser print with a styled receipt template
   const receiptWindow = window.open("", "_blank", "width=400,height=600");
   if (!receiptWindow) {
@@ -60,7 +61,12 @@ export function printReceipt(sale: Sale, shopName = "My Shop") {
     </head>
     <body>
       <h1>${shopName}</h1>
-      <p class="subtitle">Bill #${sale.id.slice(-6).toUpperCase()} &bull; ${date}</p>
+      ${settings.address ? `<p class="subtitle" style="margin-bottom: 4px;">${settings.address}</p>` : ""}
+      ${settings.phone ? `<p class="subtitle" style="margin-bottom: 4px;">Ph: ${settings.phone}</p>` : ""}
+      ${settings.gstNumber ? `<p class="subtitle" style="margin-bottom: 12px; font-weight: bold;">GSTIN: ${settings.gstNumber}</p>` : ""}
+      ${(!settings.address && !settings.phone && !settings.gstNumber) ? `<div style="height: 12px;"></div>` : ""}
+      <p class="subtitle" style="text-align: left; margin-bottom: 4px;">Bill #${sale.id.slice(-6).toUpperCase()}</p>
+      <p class="subtitle" style="text-align: left; margin-bottom: 12px;">Date: ${date}</p>
       <div class="divider"></div>
       <table>
         <thead>

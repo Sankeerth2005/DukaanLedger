@@ -12,8 +12,9 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, calculateFinalPrice } from "@/lib/utils";
 import { printReceipt } from "@/components/receipt-printer";
-import type { Product, CartItem, Sale } from "@/lib/types";
-import { Search, Plus, Minus, Trash2, Receipt, ShoppingCart, Printer, CheckCircle } from "lucide-react";
+import type { Product, CartItem, Sale, ShopSettings } from "@/lib/types";
+import { Search, Plus, Minus, Trash2, Receipt, ShoppingCart, Printer, CheckCircle, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function BillingPage() {
   const { toast } = useToast();
@@ -27,11 +28,17 @@ export default function BillingPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
-  const [shopName, setShopName] = useState("My Shop");
+  const [shopSettings, setShopSettings] = useState<Partial<ShopSettings>>({ shopName: "My Shop" });
+  const [smartSuggestions, setSmartSuggestions] = useState<Product[]>([]);
 
   useEffect(() => {
     searchInputRef.current?.focus();
-    fetch("/api/settings").then((r) => r.json()).then((d) => setShopName(d.shopName || "My Shop")).catch(() => {});
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) setShopSettings(res.data);
+      })
+      .catch(() => {});
   }, []);
 
   // Debounced search
@@ -40,8 +47,8 @@ export default function BillingPage() {
       if (searchQuery.trim()) {
         try {
           const response = await fetch(`/api/products?search=${encodeURIComponent(searchQuery)}`);
-          const data = await response.json();
-          const results = Array.isArray(data) ? data : [];
+          const result = await response.json();
+          const results = result.success && Array.isArray(result.data) ? result.data : [];
           setSearchResults(results.slice(0, 6));
 
           setShowSuggestions(true);
@@ -55,6 +62,23 @@ export default function BillingPage() {
     }, 250);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Fetch co-purchase suggestions when last cart item changes
+  useEffect(() => {
+    const lastItem = cart[cart.length - 1];
+    if (!lastItem?.productId) { setSmartSuggestions([]); return; }
+    fetch(`/api/analytics/suggestions?productId=${lastItem.productId}`)
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && Array.isArray(res.data)) {
+          // Filter out items already in cart
+          const cartIds = new Set(cart.map(c => c.productId));
+          const filtered = res.data.filter((p: any) => !cartIds.has(p.productId)) as Product[];
+          setSmartSuggestions(filtered);
+        }
+      })
+      .catch(() => setSmartSuggestions([]));
+  }, [cart.length]);
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find((item) => item.productId === product.id);
@@ -136,15 +160,17 @@ export default function BillingPage() {
         body: JSON.stringify({ items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity, discount: item.discount })) }),
       });
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to process sale");
+        const result = await response.json();
+        throw new Error(result.error || "Failed to process sale");
       }
-      const sale = await response.json();
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || "Failed to process sale");
+      const sale = result.data;
       setLastSale(sale);
       toast({ title: "✓ Sale completed!", description: `Bill #${sale.id.slice(-6).toUpperCase()} • ${formatCurrency(sale.totalAmount)}` });
       setCart([]);
       if (printAfter) {
-        setTimeout(() => printReceipt(sale, shopName), 300);
+        setTimeout(() => printReceipt(sale, shopSettings), 300);
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -159,14 +185,14 @@ export default function BillingPage() {
       <main className="flex-1 container py-8 animate-fade-in">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight flex items-center gap-2" style={{ fontFamily: "Syne, sans-serif" }}>
               <Receipt className="h-6 w-6 text-primary" />
-              New Sale
+              New <span className="gradient-text">Sale</span>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">Search for products and add them to the cart</p>
           </div>
           {lastSale && (
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => printReceipt(lastSale, shopName)}>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => printReceipt(lastSale, shopSettings)}>
               <Printer className="h-4 w-4" />
               Reprint Last Receipt
             </Button>
@@ -251,6 +277,34 @@ export default function BillingPage() {
                     <p className="text-xs text-muted-foreground mt-1">Search for products above to get started</p>
                   </div>
                 ) : (
+                  <>
+                    {/* Smart Suggestions */}
+                    <AnimatePresence>
+                      {smartSuggestions.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                          className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3"
+                        >
+                          <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5" /> Often bought together
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {smartSuggestions.map(p => (
+                              <motion.button
+                                key={p.id}
+                                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                                onClick={() => addToCart(p)}
+                                className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-background/60 px-3 py-1.5 text-xs font-medium hover:border-primary/60 hover:bg-primary/10 transition-all"
+                              >
+                                <Plus className="h-3 w-3 text-primary" />
+                                {p.name}
+                                <span className="text-muted-foreground ml-1">₹{p.sellingPrice}</span>
+                              </motion.button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -264,21 +318,38 @@ export default function BillingPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {cart.map((item) => (
-                          <TableRow key={item.productId}>
+                        <AnimatePresence>
+                        {cart.map((item, idx) => (
+                          <motion.tr key={item.productId}
+                            className="border-b"
+                            initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, height: "auto", scale: 1 }}
+                            exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}>
                             <TableCell className="font-medium text-sm">{item.name}</TableCell>
                             <TableCell className="text-sm">{formatCurrency(item.finalPrice)}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                <Button variant="outline" size="icon" className="h-7 w-7"
-                                  onClick={() => updateQuantity(item.productId, item.quantity - 1)}>
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="w-7 text-center text-sm font-medium">{item.quantity}</span>
-                                <Button variant="outline" size="icon" className="h-7 w-7"
-                                  onClick={() => updateQuantity(item.productId, item.quantity + 1)}>
-                                  <Plus className="h-3 w-3" />
-                                </Button>
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                  <Button variant="outline" size="icon" className="h-7 w-7"
+                                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}>
+                                    <Minus className="h-3 w-3" />
+                                  </Button>
+                                </motion.div>
+                                <motion.span
+                                  key={item.quantity}
+                                  className="w-7 text-center text-sm font-bold"
+                                  initial={{ scale: 1.4, color: "#a855f7" }}
+                                  animate={{ scale: 1, color: "inherit" }}
+                                  transition={{ duration: 0.2 }}>
+                                  {item.quantity}
+                                </motion.span>
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                  <Button variant="outline" size="icon" className="h-7 w-7"
+                                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}>
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </motion.div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -286,18 +357,29 @@ export default function BillingPage() {
                                 onChange={(e) => updateDiscount(item.productId, parseFloat(e.target.value) || 0)}
                                 className="w-16 h-7 text-center" />
                             </TableCell>
-                            <TableCell className="font-semibold text-sm">{formatCurrency(item.total)}</TableCell>
+                            <motion.td
+                              key={item.total}
+                              className="px-4 py-2 font-semibold text-sm"
+                              initial={{ color: "#a855f7" }}
+                              animate={{ color: "inherit" }}
+                              transition={{ duration: 0.4 }}>
+                              {formatCurrency(item.total)}
+                            </motion.td>
                             <TableCell>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive"
-                                onClick={() => removeFromCart(item.productId)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive"
+                                  onClick={() => removeFromCart(item.productId)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </motion.div>
                             </TableCell>
-                          </TableRow>
+                          </motion.tr>
                         ))}
+                        </AnimatePresence>
                       </TableBody>
                     </Table>
                   </div>
+                </>
                 )}
               </CardContent>
             </Card>

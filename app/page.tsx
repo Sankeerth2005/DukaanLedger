@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SalesTrendChart } from "@/components/sales-trend-chart";
 import { formatCurrency } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { AnimatedNumber, fadeUp, stagger } from "@/components/motion";
 import {
   TrendingUp,
   DollarSign,
@@ -46,18 +49,63 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("today");
   const [trendDays, setTrendDays] = useState(7);
+  const [noShop, setNoShop] = useState(false);
+  const [topInsight, setTopInsight] = useState<{ icon: string; title: string; description: string } | null>(null);
+  const [insightIdx, setInsightIdx] = useState(0);
+  const [insightVisible, setInsightVisible] = useState(true);
+  const [allInsights, setAllInsights] = useState<Array<{ icon: string; title: string; description: string }>>([]);
   const isOwner = session?.user?.role === "OWNER";
 
   useEffect(() => {
     fetchStats();
   }, [period]);
 
+  // Fetch top insights for the rotating strip
+  useEffect(() => {
+    if (!isOwner) return;
+    fetch("/api/analytics?days=7&insights=true")
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.data?.insights?.length) {
+          setAllInsights(res.data.insights.slice(0, 5));
+          setTopInsight(res.data.insights[0]);
+        }
+      })
+      .catch(() => {});
+  }, [isOwner]);
+
+  // Rotate insights every 5 seconds with a fade
+  useEffect(() => {
+    if (allInsights.length <= 1) return;
+    const id = setInterval(() => {
+      setInsightVisible(false);
+      setTimeout(() => {
+        setInsightIdx(i => {
+          const next = (i + 1) % allInsights.length;
+          setTopInsight(allInsights[next]);
+          return next;
+        });
+        setInsightVisible(true);
+      }, 300);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [allInsights]);
+
   async function fetchStats() {
     setLoading(true);
     try {
       const response = await fetch(`/api/dashboard?period=${period}`);
-      const data = await response.json();
-      setStats(data);
+      const result = await response.json();
+      if (response.status === 400 && result.error?.includes("No shop")) {
+        setNoShop(true);
+        setLoading(false);
+        return;
+      }
+      if (result.success) {
+        setStats(result.data);
+      } else {
+        throw new Error(result.error);
+      }
     } catch (error) {
       console.error("Failed to fetch stats:", error);
     } finally {
@@ -69,11 +117,51 @@ export default function DashboardPage() {
     <>
       <Navbar />
       <main className="flex-1 container py-8 animate-fade-in">
+        {/* No-shop session banner */}
+        {noShop && (
+          <div className="mb-6 rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-amber-400">⚠️ Session needs a one-time refresh</p>
+              <p className="text-sm text-amber-300/80 mt-0.5">Your session is missing shop data from a previous login. Sign out and sign back in to fix this instantly — it only happens once.</p>
+            </div>
+            <Button size="sm" variant="outline" className="border-amber-400/60 text-amber-400 shrink-0"
+              onClick={() => signOut({ callbackUrl: "/login" })}>
+              Sign out &amp; fix
+            </Button>
+          </div>
+        )}
+
+        {/* Rotating AI Insight Strip */}
+        {topInsight && isOwner && (
+          <a href="/analytics" className="block mb-6 group">
+            <div
+              className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3 hover:border-primary/40 hover:bg-primary/10 transition-all duration-300"
+              style={{ opacity: insightVisible ? 1 : 0, transition: "opacity 0.3s ease" }}
+            >
+              <span className="text-xl shrink-0">{topInsight.icon}</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">AI Insight</span>
+                <p className="text-sm font-semibold truncate">{topInsight.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{topInsight.description}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {allInsights.length > 1 && (
+                  <div className="flex gap-1">
+                    {allInsights.map((_, i) => (
+                      <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === insightIdx ? "bg-primary" : "bg-primary/25"}`} />
+                    ))}
+                  </div>
+                )}
+                <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">View all →</span>
+              </div>
+            </div>
+          </a>
+        )}
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Welcome back{session?.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""} 👋
+            <h1 className="text-2xl font-black tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>
+              Welcome back{session?.user?.name ? `, ${session.user.name.split(" ")[0]}` : ""} <span className="gradient-text">👋</span>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               Here&apos;s what&apos;s happening in your shop
@@ -98,87 +186,88 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <motion.div
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8"
+          variants={stagger} initial="hidden" animate={loading ? "hidden" : "show"}
+        >
           {loading ? (
             Array(4).fill(0).map((_, i) => <StatCardSkeleton key={i} />)
           ) : (
             <>
-              <Card className="stat-card-sales border-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white/80">
-                    Total Sales
-                  </CardTitle>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                    <DollarSign className="h-4 w-4 text-white" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">
-                    {formatCurrency(stats?.totalSales || 0)}
-                  </div>
-                  <p className="text-xs text-white/70 mt-1">
-                    {period === "today" ? "Today" : period === "week" ? "Last 7 days" : period === "month" ? "Last 30 days" : "All time"}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {isOwner && (
-                <Card className="stat-card-profit border-0">
+              <motion.div variants={fadeUp}>
+                <Card className="stat-card-sales border-0 card-hover">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-white/80">
-                      Total Profit
-                    </CardTitle>
+                    <CardTitle className="text-sm font-medium text-white/80">Total Sales</CardTitle>
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                      <TrendingUp className="h-4 w-4 text-white" />
+                      <DollarSign className="h-4 w-4 text-white" />
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-white">
-                      {formatCurrency(stats?.totalProfit || 0)}
+                      ₹<AnimatedNumber value={stats?.totalSales || 0} />
                     </div>
                     <p className="text-xs text-white/70 mt-1">
-                      Net profit after costs
+                      {period === "today" ? "Today" : period === "week" ? "Last 7 days" : period === "month" ? "Last 30 days" : "All time"}
                     </p>
                   </CardContent>
                 </Card>
+              </motion.div>
+
+              {isOwner && (
+                <motion.div variants={fadeUp}>
+                  <Card className="stat-card-profit border-0 card-hover">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-white/80">Total Profit</CardTitle>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+                        <TrendingUp className="h-4 w-4 text-white" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-white">
+                        ₹<AnimatedNumber value={stats?.totalProfit || 0} />
+                      </div>
+                      <p className="text-xs text-white/70 mt-1">Net profit after costs</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
 
-              <Card className="stat-card-transactions border-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white/80">
-                    Transactions
-                  </CardTitle>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                    <ShoppingCart className="h-4 w-4 text-white" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">
-                    {stats?.totalTransactions || 0}
-                  </div>
-                  <p className="text-xs text-white/70 mt-1">Total bills processed</p>
-                </CardContent>
-              </Card>
+              <motion.div variants={fadeUp}>
+                <Card className="stat-card-transactions border-0 card-hover">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-white/80">Transactions</CardTitle>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+                      <ShoppingCart className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      <AnimatedNumber value={stats?.totalTransactions || 0} />
+                    </div>
+                    <p className="text-xs text-white/70 mt-1">Total bills processed</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card className="stat-card-stock border-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-white/80">
-                    Low Stock
-                  </CardTitle>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                    <Package className="h-4 w-4 text-white" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">
-                    {stats?.lowStockProducts?.length || 0}
-                  </div>
-                  <p className="text-xs text-white/70 mt-1">Items need restocking</p>
-                </CardContent>
-              </Card>
+              <motion.div variants={fadeUp}>
+                <Card className="stat-card-stock border-0 card-hover">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-white/80">Low Stock</CardTitle>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+                      <Package className="h-4 w-4 text-white" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      <AnimatedNumber value={stats?.lowStockProducts?.length || 0} />
+                    </div>
+                    <p className="text-xs text-white/70 mt-1">Items need restocking</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </>
           )}
-        </div>
+        </motion.div>
 
         {/* Trend Chart — full width */}
         <div className="mb-8">

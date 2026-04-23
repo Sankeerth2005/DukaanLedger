@@ -14,7 +14,9 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const sale = await getSaleById(id);
+    const shopId = (session.user as any).shopId;
+    if (!shopId) return NextResponse.json({ error: "No shop linked" }, { status: 400 });
+    const sale = await getSaleById(shopId, id);
     if (!sale) {
       return NextResponse.json(
         { error: "Sale not found" },

@@ -16,8 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { printReceipt } from "@/components/receipt-printer";
-import type { Sale } from "@/lib/types";
+import type { Sale, ShopSettings } from "@/lib/types";
 import { History, Eye, Receipt, Printer, CalendarIcon, X, TrendingUp, DollarSign, ShoppingCart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AnimatedNumber, fadeUp, stagger } from "@/components/motion";
 
 export default function SalesPage() {
   const { data: session } = useSession();
@@ -25,17 +27,17 @@ export default function SalesPage() {
   const { toast } = useToast();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
-  const [shopName, setShopName] = useState("My Shop");
+  const [shopSettings, setShopSettings] = useState<Partial<ShopSettings>>({ shopName: "My Shop" });
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [hasFilter, setHasFilter] = useState(false);
 
-  // Summary stats
-  const totalSales = sales.reduce((s, t) => s + t.totalAmount, 0);
-  const totalProfit = sales.reduce((s, t) => s + t.totalProfit, 0);
+  // Summary stats — guard in case API returns non-array
+  const totalSales = Array.isArray(sales) ? sales.reduce((s, t) => s + t.totalAmount, 0) : 0;
+  const totalProfit = Array.isArray(sales) ? sales.reduce((s, t) => s + t.totalProfit, 0) : 0;
 
   useEffect(() => {
-    fetch("/api/settings").then((r) => r.json()).then((d) => setShopName(d.shopName || "My Shop")).catch(() => {});
+    fetch("/api/settings").then((r) => r.json()).then((d) => setShopSettings(d)).catch(() => {});
     fetchSales();
   }, []);
 
@@ -46,10 +48,11 @@ export default function SalesPage() {
       if (from) params.set("from", from);
       if (to) params.set("to", to);
       const response = await fetch(`/api/sales?${params.toString()}`);
-      const data = await response.json();
-      setSales(data);
+      const result = await response.json();
+      setSales(Array.isArray(result.data) ? result.data : Array.isArray(result) ? result : []);
     } catch (error) {
       console.error("Failed to fetch sales:", error);
+      setSales([]);
     } finally {
       setLoading(false);
     }
@@ -75,54 +78,64 @@ export default function SalesPage() {
     <>
       <Navbar />
       <main className="flex-1 container py-8 animate-fade-in">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <motion.div className="mb-8"
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2" style={{ fontFamily: "Syne, sans-serif" }}>
             <History className="h-6 w-6 text-primary" />
-            Sales History
+            Sales <span className="gradient-text">History</span>
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Browse and filter past transactions</p>
-        </div>
+        </motion.div>
 
         {/* Summary Cards */}
+        <AnimatePresence>
         {!loading && sales.length > 0 && (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <Card className="border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-xs font-medium">Total Revenue</p>
-                    <p className="text-xl font-bold mt-1">{formatCurrency(totalSales)}</p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-blue-200" />
-                </div>
-              </CardContent>
-            </Card>
-            {isOwner && (
-              <Card className="border-0 bg-gradient-to-br from-green-500 to-green-600 text-white">
+          <motion.div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
+            variants={stagger} initial="hidden" animate="show">
+            <motion.div variants={fadeUp}>
+              <Card className="border-0 stat-card-stock card-hover text-white">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-green-100 text-xs font-medium">Total Profit</p>
-                      <p className="text-xl font-bold mt-1">{formatCurrency(totalProfit)}</p>
+                      <p className="text-white/70 text-xs font-medium">Total Revenue</p>
+                      <p className="text-xl font-bold mt-1">₹<AnimatedNumber value={totalSales} /></p>
                     </div>
-                    <TrendingUp className="h-8 w-8 text-green-200" />
+                    <DollarSign className="h-8 w-8 text-white/40" />
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+            {isOwner && (
+              <motion.div variants={fadeUp}>
+                <Card className="border-0 stat-card-profit card-hover text-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white/70 text-xs font-medium">Total Profit</p>
+                        <p className="text-xl font-bold mt-1">₹<AnimatedNumber value={totalProfit} /></p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-white/40" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
-            <Card className="border-0 bg-gradient-to-br from-violet-500 to-violet-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-violet-100 text-xs font-medium">Transactions</p>
-                    <p className="text-xl font-bold mt-1">{sales.length}</p>
+            <motion.div variants={fadeUp}>
+              <Card className="border-0 stat-card-sales card-hover text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white/70 text-xs font-medium">Transactions</p>
+                      <p className="text-xl font-bold mt-1"><AnimatedNumber value={sales.length} /></p>
+                    </div>
+                    <ShoppingCart className="h-8 w-8 text-white/40" />
                   </div>
-                  <ShoppingCart className="h-8 w-8 text-violet-200" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Date Filters */}
         <Card className="mb-6">
@@ -194,8 +207,12 @@ export default function SalesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sales.map((sale) => (
-                      <TableRow key={sale.id} className="hover:bg-secondary/40">
+                    {sales.map((sale, idx) => (
+                      <motion.tr key={sale.id}
+                        className="border-b transition-colors hover:bg-secondary/40"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.03, duration: 0.3 }}>
                         <TableCell className="font-mono font-semibold text-sm text-primary">
                           #{sale.id.slice(-6).toUpperCase()}
                         </TableCell>
@@ -273,7 +290,7 @@ export default function SalesPage() {
                                       </div>
                                     )}
                                   </div>
-                                  <Button className="w-full gap-2" variant="outline" onClick={() => printReceipt(sale, shopName)}>
+                                  <Button className="w-full gap-2" variant="outline" onClick={() => printReceipt(sale, shopSettings)}>
                                     <Printer className="h-4 w-4" />
                                     Print Receipt
                                   </Button>
@@ -282,13 +299,13 @@ export default function SalesPage() {
                             </Dialog>
                             {/* Quick print */}
                             <Button variant="ghost" size="sm" className="h-8 gap-1.5"
-                              onClick={() => printReceipt(sale, shopName)}>
+                              onClick={() => printReceipt(sale, shopSettings)}>
                               <Printer className="h-3.5 w-3.5" />
                               <span className="hidden sm:inline">Print</span>
                             </Button>
                           </div>
                         </TableCell>
-                      </TableRow>
+                      </motion.tr>
                     ))}
                   </TableBody>
                 </Table>

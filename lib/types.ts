@@ -36,6 +36,7 @@ export interface SaleItemOutput {
   discount: number;
   finalPrice: number;
   profit: number;
+  lineTotal: number;
 }
 
 export interface Sale {

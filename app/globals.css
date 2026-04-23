@@ -1,58 +1,58 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Syne:wght@400;600;700;800&display=swap");
 @import "tailwindcss";
-
 @plugin "tailwindcss-animate";
 
+/* ====== DESIGN TOKENS ====== */
 :root {
-  /* Refined indigo/violet-based palette */
-  --background: 220 25% 98%;
-  --foreground: 224 71% 4%;
+  --background: 240 10% 97%;
+  --foreground: 240 10% 6%;
   --card: 0 0% 100%;
-  --card-foreground: 224 71% 4%;
+  --card-foreground: 240 10% 6%;
   --popover: 0 0% 100%;
-  --popover-foreground: 224 71% 4%;
-  --primary: 239 84% 67%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 220 14% 94%;
-  --secondary-foreground: 224 71% 4%;
-  --muted: 220 14% 94%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 262 83% 95%;
-  --accent-foreground: 262 83% 40%;
+  --popover-foreground: 240 10% 6%;
+  --primary: 258 90% 66%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 6% 93%;
+  --secondary-foreground: 240 10% 6%;
+  --muted: 240 6% 93%;
+  --muted-foreground: 240 5% 46%;
+  --accent: 258 100% 96%;
+  --accent-foreground: 258 90% 45%;
   --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 220 13% 88%;
-  --input: 220 13% 88%;
-  --ring: 239 84% 67%;
-  --radius: 0.625rem;
-  --success: 142 76% 36%;
-  --warning: 38 92% 50%;
-  --profit: 158 64% 40%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 88%;
+  --input: 240 6% 88%;
+  --ring: 258 90% 66%;
+  --radius: 0.75rem;
+
+  /* Gen Z accent colors */
+  --neon-purple: #a855f7;
+  --neon-blue: #3b82f6;
+  --neon-pink: #ec4899;
+  --glow-purple: rgba(168, 85, 247, 0.4);
+  --glow-blue: rgba(59, 130, 246, 0.3);
 }
 
 .dark {
-  --background: 224 71% 4%;
-  --foreground: 210 40% 98%;
-  --card: 222 47% 7%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222 47% 7%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 239 84% 67%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 222 32% 14%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 222 32% 14%;
-  --muted-foreground: 215 20% 55%;
-  --accent: 262 40% 20%;
-  --accent-foreground: 262 83% 80%;
-  --destructive: 0 62% 35%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 222 32% 16%;
-  --input: 222 32% 16%;
-  --ring: 239 84% 67%;
-  --success: 142 76% 36%;
-  --warning: 38 92% 50%;
-  --profit: 158 64% 52%;
+  --background: 240 15% 5%;
+  --foreground: 240 5% 96%;
+  --card: 240 15% 8%;
+  --card-foreground: 240 5% 96%;
+  --popover: 240 15% 8%;
+  --popover-foreground: 240 5% 96%;
+  --primary: 258 90% 68%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 12% 14%;
+  --secondary-foreground: 240 5% 90%;
+  --muted: 240 12% 14%;
+  --muted-foreground: 240 5% 55%;
+  --accent: 258 40% 22%;
+  --accent-foreground: 258 90% 80%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 12% 18%;
+  --input: 240 12% 18%;
+  --ring: 258 90% 68%;
 }
 
 @theme inline {
@@ -79,8 +79,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: 'Inter', var(--font-geist-sans), sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), 'Inter', sans-serif;
+  --font-display: var(--font-syne), 'Syne', sans-serif;
 }
 
 * {
@@ -92,14 +92,15 @@ html {
 }
 
 body {
-  font-family: 'Inter', var(--font-geist-sans), sans-serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   font-feature-settings: "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ========== CONTAINER ========== */
+/* ====== CONTAINER ====== */
 .container {
   width: 100%;
   margin-left: auto;
@@ -111,111 +112,274 @@ body {
 @media (min-width: 768px)  { .container { max-width: 768px; } }
 @media (min-width: 1024px) { .container { max-width: 1024px; } }
 @media (min-width: 1280px) { .container { max-width: 1280px; } }
-@media (min-width: 1536px) { .container { max-width: 1536px; } }
 
-/* ========== GLASS CARD ========== */
-.glass-card {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0,0,0,0.05);
-}
-
-.dark .glass-card {
-  background: rgba(15, 20, 40, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.4);
-}
-
-/* ========== NAVBAR GLASS ========== */
-.navbar-glass {
-  background: rgba(255, 255, 255, 0.8);
+/* ====== GLASSMORPHISM ====== */
+.glass {
+  background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.dark .glass {
+  background: rgba(15, 10, 30, 0.5);
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* Legacy alias — same properties as .glass */
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.dark .glass-card {
+  background: rgba(15, 10, 30, 0.5);
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* ====== NAVBAR GLASS ====== */
+.navbar-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 16px rgba(0,0,0,0.06);
 }
-
 .dark .navbar-glass {
-  background: rgba(10, 14, 30, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(8, 5, 20, 0.85);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.1);
+  box-shadow: 0 1px 16px rgba(0,0,0,0.3);
 }
 
-/* ========== NAV ACTIVE INDICATOR ========== */
-.nav-indicator {
-  position: relative;
+/* ====== NEON GLOWS ====== */
+.glow-purple {
+  box-shadow: 0 0 20px var(--glow-purple), 0 0 40px var(--glow-purple);
 }
+.glow-blue {
+  box-shadow: 0 0 20px var(--glow-blue), 0 0 40px var(--glow-blue);
+}
+.text-glow {
+  text-shadow: 0 0 20px var(--neon-purple);
+}
+
+/* ====== GRADIENT TEXT ====== */
+.gradient-text {
+  background: linear-gradient(135deg, #a855f7, #3b82f6, #ec4899);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 4s ease infinite;
+}
+.gradient-text-gold {
+  background: linear-gradient(135deg, #f59e0b, #ef4444, #f97316);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+@keyframes gradient-shift {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+/* ====== HERO BACKGROUND ====== */
+.hero-bg {
+  background: radial-gradient(ellipse at top left, rgba(168, 85, 247, 0.25) 0%, transparent 50%),
+              radial-gradient(ellipse at bottom right, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
+              radial-gradient(ellipse at center, rgba(236, 72, 153, 0.1) 0%, transparent 60%),
+              hsl(var(--background));
+}
+.dark .hero-bg {
+  background: radial-gradient(ellipse at top left, rgba(168, 85, 247, 0.3) 0%, transparent 50%),
+              radial-gradient(ellipse at bottom right, rgba(59, 130, 246, 0.25) 0%, transparent 50%),
+              radial-gradient(ellipse at center, rgba(236, 72, 153, 0.12) 0%, transparent 60%),
+              hsl(240 15% 5%);
+}
+
+/* ====== ANIMATED GRADIENT BG ====== */
+.animated-grid {
+  background-image:
+    linear-gradient(rgba(168, 85, 247, 0.05) 1px, transparent 1px),
+    linear-gradient(to right, rgba(168, 85, 247, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.dark .animated-grid {
+  background-image:
+    linear-gradient(rgba(168, 85, 247, 0.08) 1px, transparent 1px),
+    linear-gradient(to right, rgba(168, 85, 247, 0.08) 1px, transparent 1px);
+}
+
+/* ====== NAV INDICATOR ====== */
+.nav-indicator { position: relative; }
 .nav-indicator::after {
   content: '';
   position: absolute;
   bottom: -2px;
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: 50%;
   height: 2px;
   border-radius: 2px;
-  background: hsl(var(--primary));
-  opacity: 0;
-  transform: scaleX(0);
-  transition: opacity 0.2s, transform 0.2s;
+  background: linear-gradient(90deg, #a855f7, #3b82f6);
+  transition: left 0.25s ease, right 0.25s ease;
 }
 .nav-indicator.active::after {
-  opacity: 1;
-  transform: scaleX(1);
+  left: 8px;
+  right: 8px;
 }
 
-/* ========== STAT CARDS ========== */
+/* ====== STAT CARDS ====== */
 .stat-card-sales {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.3);
 }
 .stat-card-profit {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  color: white;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 10px 30px rgba(5, 150, 105, 0.3);
 }
 .stat-card-transactions {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  background: linear-gradient(135deg, #db2777 0%, #e879f9 100%);
+  box-shadow: 0 10px 30px rgba(219, 39, 119, 0.3);
 }
 .stat-card-stock {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
+  background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+  box-shadow: 0 10px 30px rgba(2, 132, 199, 0.3);
 }
 
-.stat-card-sales svg,
-.stat-card-profit svg,
-.stat-card-transactions svg,
-.stat-card-stock svg {
-  opacity: 0.8;
+/* ====== HOVER CARD LIFT ====== */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 12px 32px rgba(168, 85, 247, 0.15);
 }
 
-/* ========== PAGE HEADER GRADIENT ========== */
-.page-hero {
-  background: linear-gradient(135deg, hsl(239 84% 67% / 0.08) 0%, hsl(262 83% 67% / 0.05) 100%);
-  border-bottom: 1px solid hsl(var(--border));
-  padding: 2rem 0;
-  margin-bottom: 2rem;
+/* ====== BUTTON GLOW ====== */
+.btn-glow {
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.btn-glow:hover {
+  box-shadow: 0 0 20px var(--glow-purple), 0 4px 16px rgba(0,0,0,0.2);
+  transform: translateY(-1px);
+}
+.btn-glow:active {
+  transform: translateY(0px) scale(0.98);
 }
 
-/* ========== SCROLLBAR ========== */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+/* ====== RIPPLE ====== */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+.ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.ripple:active::after {
+  opacity: 1;
+}
 
-/* ========== ANIMATIONS ========== */
+/* ====== INPUT MAGIC ====== */
+.input-magic {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-magic:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+}
+
+/* ====== SCROLL PROGRESS ====== */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #a855f7, #3b82f6, #ec4899);
+  z-index: 9999;
+  transform-origin: left;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ====== FLOATING PARTICLES ====== */
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(0); }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-100vh); }
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: float-up linear infinite;
+  pointer-events: none;
+}
+
+/* ====== SHIMMER SKELETON ====== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--secondary)) 50%, hsl(var(--muted)) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ====== PAGE TRANSITIONS ====== */
+.page-enter {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
 }
-.animate-fade-in { animation: fadeIn 0.4s ease-out both; }
 .animate-slide-in { animation: slideInRight 0.3s ease-out both; }
 
-/* ========== BADGE VARIANTS ========== */
+/* ====== STAR PULSE ====== */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.5); }
+}
+.star-pulse {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* ====== TYPING CURSOR ====== */
+@keyframes blink {
+  50% { opacity: 0; }
+}
+.typing-cursor::after {
+  content: '|';
+  animation: blink 1s step-end infinite;
+  color: #a855f7;
+}
+
+/* ====== BADGE VARIANTS ====== */
 .badge-success {
   background-color: hsl(142 76% 90%);
   color: hsl(142 76% 30%);
@@ -225,7 +389,15 @@ body {
   color: hsl(142 76% 60%);
 }
 
-/* ========== PRINT STYLES ========== */
+/* ====== SCROLLBAR ====== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a855f7, #3b82f6);
+  border-radius: 3px;
+}
+
+/* ====== PRINT ====== */
 @media print {
   .no-print { display: none !important; }
 }

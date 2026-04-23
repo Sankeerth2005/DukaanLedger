@@ -7,16 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { SalesTrend } from "@/lib/types";
 import { TrendingUp } from "lucide-react";
 
-// Dynamically import Recharts to prevent SSR issues and re-render loops
-const ResponsiveContainer = dynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false });
-const ComposedChart = dynamic(() => import("recharts").then(m => m.ComposedChart), { ssr: false });
-const Area = dynamic(() => import("recharts").then(m => m.Area), { ssr: false });
-const Bar = dynamic(() => import("recharts").then(m => m.Bar), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then(m => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then(m => m.YAxis), { ssr: false });
-const CartesianGrid = dynamic(() => import("recharts").then(m => m.CartesianGrid), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then(m => m.Tooltip), { ssr: false });
-const Legend = dynamic(() => import("recharts").then(m => m.Legend), { ssr: false });
+import { ResponsiveContainer, ComposedChart, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from "recharts";
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -56,8 +47,10 @@ export function SalesTrendChart({ days = 7 }: { days?: number }) {
     async function fetchTrend() {
       try {
         const res = await fetch(`/api/dashboard/trend?days=${days}`);
-        const json = await res.json();
-        setData(json);
+        const result = await res.json();
+        if (result.success) {
+          setData(result.data);
+        }
       } catch (e) {
         console.error("Failed to fetch trend", e);
       } finally {
@@ -117,7 +110,7 @@ export function SalesTrendChart({ days = 7 }: { days?: number }) {
               tickLine={false}
               tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <RechartsTooltip content={<CustomTooltip />} />
             <Legend />
             <Area
               type="monotone"

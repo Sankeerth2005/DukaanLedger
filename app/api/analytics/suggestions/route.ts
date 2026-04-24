@@ -40,15 +40,15 @@ export async function GET(request: Request) {
     });
 
     // Get current stock for these products
-    const productIds = coProducts.map(p => p.productId).filter(Boolean) as string[];
+    const productIds = coProducts.map((p: any) => p.productId).filter(Boolean) as string[];
     const stocks = await prisma.product.findMany({
       where: { id: { in: productIds }, shopId, stock: { gt: 0 } },
       select: { id: true, name: true, sellingPrice: true, discount: true, stock: true },
     });
 
-    const stockMap = new Map(stocks.map(p => [p.id, p]));
+    const stockMap = new Map(stocks.map((p: any) => [p.id, p]));
     const suggestions = coProducts
-      .map(p => {
+      .map((p: any) => {
         const product = stockMap.get(p.productId!);
         if (!product) return null;
         return {

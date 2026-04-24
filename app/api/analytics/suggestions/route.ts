@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       take: 200,
     });
 
-    const saleIds = saleIdsWithProduct.map(s => s.saleId);
+    const saleIds = saleIdsWithProduct.map((s: { saleId: string }) => s.saleId);
     if (saleIds.length === 0) return NextResponse.json({ success: true, data: [] });
 
     // Find other products in those same sales (co-purchased)

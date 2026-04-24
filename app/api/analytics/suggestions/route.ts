@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       select: { id: true, name: true, sellingPrice: true, discount: true, stock: true },
     });
 
-    const stockMap = new Map(stocks.map((p: any) => [p.id, p]));
+    const stockMap = new Map<string, any>(stocks.map((p: any) => [p.id, p]));
     const suggestions = coProducts
       .map((p: any) => {
         const product = stockMap.get(p.productId!);
